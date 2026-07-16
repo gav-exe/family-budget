@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { BudgetProvider } from './store';
+import { BudgetProvider, useBudget } from './store';
 import Dashboard from './components/Dashboard';
 import PersonBudget from './components/PersonBudget';
 import DebtTracker from './components/DebtTracker';
 import Subscriptions from './components/Subscriptions';
 import CancunTracker from './components/CancunTracker';
 import BillCalendar from './components/BillCalendar';
-import { LayoutDashboard, User, Users, CreditCard, Tv, Plane, CalendarDays, RotateCcw } from 'lucide-react';
+import Login from './components/Login';
+import { LayoutDashboard, User, Users, CreditCard, Tv, Plane, CalendarDays, RotateCcw, LogOut } from 'lucide-react';
 
 const tabs = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -20,6 +21,19 @@ const tabs = [
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const { session, authLoading, signOut, cloudEnabled } = useBudget();
+
+  // When Supabase is set up, require a login before showing the budget.
+  if (cloudEnabled && authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400">
+        Loading…
+      </div>
+    );
+  }
+  if (cloudEnabled && !session) {
+    return <Login />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -30,6 +44,14 @@ function AppContent() {
               <span className="text-white">Cox Family</span>
               <span className="text-cyan-400 ml-1.5">Budget</span>
             </h1>
+            {cloudEnabled && session && (
+              <button
+                onClick={signOut}
+                className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              >
+                <LogOut size={16} /> Sign out
+              </button>
+            )}
           </div>
           <nav className="flex gap-1 mt-3 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
             {tabs.map(tab => {

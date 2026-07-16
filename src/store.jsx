@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useState } from 'react';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 const STORAGE_KEY = 'cox-family-budget';
 
@@ -85,6 +86,9 @@ function loadState() {
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'SET_ALL':
+      // Replace the whole state (used when loading from the cloud).
+      return action.state;
     case 'UPDATE_PAYCHECK': {
       const { person, index, amount } = action;
       const p = { ...state[person] };
@@ -184,13 +188,75 @@ const BudgetContext = createContext();
 
 export function BudgetProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, loadState);
+  const [session, setSession] = useState(null);
+  // Only "loading" auth when Supabase is configured; otherwise local-only mode.
+  const [authLoading, setAuthLoading] = useState(isSupabaseConfigured);
+  // True once we've loaded (or seeded) the cloud row, so we don't push local
+  // state up before we've pulled the authoritative copy down.
+  const [cloudReady, setCloudReady] = useState(false);
 
+  // Track the Supabase auth session.
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      if (!s) setCloudReady(false);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  // On login, pull the budget from the cloud (or seed it the first time).
+  useEffect(() => {
+    if (!isSupabaseConfigured || !session) return;
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from('budgets')
+        .select('data')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      if (!active) return;
+      if (!error && data?.data && Object.keys(data.data).length > 0) {
+        dispatch({ type: 'SET_ALL', state: data.data });
+      } else {
+        // No saved budget yet: seed the row with whatever we have locally.
+        await supabase
+          .from('budgets')
+          .upsert({ user_id: session.user.id, data: state, updated_at: new Date().toISOString() });
+      }
+      setCloudReady(true);
+    })();
+    return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
+
+  // Always keep a local cache (offline fallback + local-only mode).
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
+  // Debounced save to the cloud whenever the budget changes.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !session || !cloudReady) return;
+    const t = setTimeout(() => {
+      supabase
+        .from('budgets')
+        .upsert({ user_id: session.user.id, data: state, updated_at: new Date().toISOString() })
+        .then(({ error }) => { if (error) console.error('Cloud save failed:', error.message); });
+    }, 800);
+    return () => clearTimeout(t);
+  }, [state, session, cloudReady]);
+
+  const signOut = () => supabase?.auth.signOut();
+
   return (
-    <BudgetContext.Provider value={{ state, dispatch }}>
+    <BudgetContext.Provider
+      value={{ state, dispatch, session, authLoading, signOut, cloudEnabled: isSupabaseConfigured }}
+    >
       {children}
     </BudgetContext.Provider>
   );
