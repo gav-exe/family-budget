@@ -1,6 +1,9 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef } from 'react';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { useAuth } from './auth';
 
 const STORAGE_KEY = 'cox-family-budget';
+const SAVE_DEBOUNCE_MS = 800;
 
 const defaultState = {
   gavin: {
@@ -85,6 +88,8 @@ function loadState() {
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'HYDRATE':
+      return action.state;
     case 'UPDATE_PAYCHECK': {
       const { person, index, amount } = action;
       const p = { ...state[person] };
@@ -183,11 +188,83 @@ function reducer(state, action) {
 const BudgetContext = createContext();
 
 export function BudgetProvider({ children }) {
+  const { session } = useAuth();
   const [state, dispatch] = useReducer(reducer, null, loadState);
+  const hydratedRef = useRef(false);
+  const stateRef = useRef(state);
+  const saveTimerRef = useRef(null);
+  stateRef.current = state;
 
+  const userId = session?.user?.id ?? null;
+
+  // On sign-in: pull the budget down from Supabase.
+  // First-ever sign-in: no row exists yet, so migrate the local budget up.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !userId) {
+      hydratedRef.current = false;
+      return;
+    }
+    let cancelled = false;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from('budgets')
+        .select('data')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (!error && data?.data && Object.keys(data.data).length > 0) {
+        dispatch({ type: 'HYDRATE', state: data.data });
+      } else {
+        await supabase
+          .from('budgets')
+          .upsert({ user_id: userId, data: stateRef.current });
+      }
+      hydratedRef.current = true;
+    })();
+
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  // Persist every change: localStorage instantly (offline cache),
+  // Supabase debounced so rapid edits batch into one write.
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    if (!isSupabaseConfigured || !userId || !hydratedRef.current) return;
+
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      supabase
+        .from('budgets')
+        .upsert({ user_id: userId, data: stateRef.current });
+    }, SAVE_DEBOUNCE_MS);
+
+    return () => clearTimeout(saveTimerRef.current);
+  }, [state, userId]);
+
+  // Realtime: when this budget row changes elsewhere (phone, laptop),
+  // hydrate the incoming copy — skipping echoes of our own saves.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !userId) return;
+
+    const channel = supabase
+      .channel(`budget-sync-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${userId}` },
+        payload => {
+          const incoming = payload.new?.data;
+          if (incoming && JSON.stringify(incoming) !== JSON.stringify(stateRef.current)) {
+            dispatch({ type: 'HYDRATE', state: incoming });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
 
   return (
     <BudgetContext.Provider value={{ state, dispatch }}>
