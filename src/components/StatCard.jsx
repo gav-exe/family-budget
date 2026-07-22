@@ -1,12 +1,16 @@
-export default function StatCard({ label, value, icon, color = 'text-slate-900', sub }) {
+export default function StatCard({ label, value, icon, color = 'bg-teal text-white', sub }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-5 border border-slate-200 hover:border-slate-300 transition-colors">
-      <div className="flex items-center gap-2 mb-1">
-        {icon && <span className={`${color}`}>{icon}</span>}
-        <span className="text-slate-500 text-sm font-medium">{label}</span>
+    <div className="bg-white rounded-[22px] border-[3px] border-ink hard-shadow p-5">
+      <div className="flex items-center gap-2 mb-2">
+        {icon && (
+          <span className={`w-8 h-8 rounded-lg border-2 border-ink hard-shadow-sm flex items-center justify-center shrink-0 ${color}`}>
+            {icon}
+          </span>
+        )}
+        <span className="text-ink/60 text-sm font-medium">{label}</span>
       </div>
-      <div className={`text-2xl font-bold ${color}`}>{value}</div>
-      {sub && <div className="text-xs text-slate-400 mt-1">{sub}</div>}
+      <div className="text-2xl font-display font-extrabold text-ink">{value}</div>
+      {sub && <div className="text-xs text-ink/40 mt-1">{sub}</div>}
     </div>
   );
 }

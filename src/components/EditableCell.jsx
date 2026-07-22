@@ -29,7 +29,7 @@ export default function EditableCell({ value, onChange, prefix = '', type = 'num
         onChange={e => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
-        className={`bg-white text-slate-900 rounded px-2 py-1 w-full outline-none ring-1 ring-cyan-500 ${className}`}
+        className={`bg-white text-ink rounded px-2 py-1 w-full outline-none border-[3px] border-ink ring-2 ring-teal ${className}`}
       />
     );
   }
@@ -37,7 +37,7 @@ export default function EditableCell({ value, onChange, prefix = '', type = 'num
   return (
     <span
       onClick={() => setEditing(true)}
-      className={`cursor-pointer hover:bg-slate-100 rounded px-2 py-1 transition-colors ${className}`}
+      className={`cursor-pointer hover:bg-cream rounded px-2 py-1 transition-colors ${className}`}
       title="Click to edit"
     >
       {prefix}{type === 'number' ? Number(value).toLocaleString('en-US', { minimumFractionDigits: value % 1 ? 2 : 0, maximumFractionDigits: 2 }) : value}
