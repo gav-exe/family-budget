@@ -5,10 +5,10 @@ import { Plus, X, ChevronLeft, ChevronRight, DollarSign, Trash2 } from 'lucide-r
 const fmt = v => '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const PERSON_COLORS = {
-  gavin: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30', dot: 'bg-blue-400' },
-  hazel: { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30', dot: 'bg-purple-400' },
-  debt: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30', dot: 'bg-red-400' },
-  custom: { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30', dot: 'bg-amber-400' },
+  gavin: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200', dot: 'bg-blue-500' },
+  hazel: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200', dot: 'bg-purple-500' },
+  debt: { bg: 'bg-red-50', text: 'text-red-500', border: 'border-red-200', dot: 'bg-red-500' },
+  custom: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', dot: 'bg-amber-500' },
 };
 
 function parseDueDay(dueOn) {
@@ -130,24 +130,24 @@ export default function BillCalendar() {
         key={day}
         onClick={() => setSelectedDay(selectedDay === day ? null : day)}
         className={`min-h-[100px] p-1.5 rounded-lg border cursor-pointer transition-all ${
-          isSelected ? 'border-cyan-500 bg-slate-700/50 ring-1 ring-cyan-500/30' :
-          isToday ? 'border-cyan-500/40 bg-cyan-500/5' :
-          isPast ? 'border-slate-700/50 bg-slate-800/30' :
-          'border-slate-700/50 bg-slate-800/60 hover:border-slate-600'
+          isSelected ? 'border-cyan-500 bg-cyan-50 ring-1 ring-cyan-200' :
+          isToday ? 'border-cyan-300 bg-cyan-50' :
+          isPast ? 'border-slate-200 bg-slate-50' :
+          'border-slate-200 bg-white hover:border-slate-300'
         }`}
       >
         <div className="flex items-center justify-between mb-1">
           <span className="flex items-center gap-1">
             <span className={`text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full ${
-              isToday ? 'bg-cyan-500 text-white' : isPast ? 'text-slate-500' : 'text-slate-300'
+              isToday ? 'bg-cyan-600 text-white' : isPast ? 'text-slate-400' : 'text-slate-700'
             }`}>
               {day}
             </span>
-            {isGavinPayday && <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-1 rounded" title="Gavin's Payday">G💰</span>}
-            {isHazelPayday && <span className="text-[10px] font-bold bg-purple-500/20 text-purple-400 px-1 rounded" title="Hazel's Payday">H💰</span>}
+            {isGavinPayday && <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-1 rounded" title="Gavin's Payday">G💰</span>}
+            {isHazelPayday && <span className="text-[10px] font-bold bg-purple-50 text-purple-600 px-1 rounded" title="Hazel's Payday">H💰</span>}
           </span>
           {dayTotal > 0 && (
-            <span className="text-[10px] text-amber-400 font-medium">{fmt(dayTotal)}</span>
+            <span className="text-[10px] text-amber-600 font-medium">{fmt(dayTotal)}</span>
           )}
         </div>
         <div className="space-y-0.5">
@@ -160,7 +160,7 @@ export default function BillCalendar() {
             );
           })}
           {dayBills.length > 3 && (
-            <div className="text-[10px] text-slate-500 pl-1">+{dayBills.length - 3} more</div>
+            <div className="text-[10px] text-slate-400 pl-1">+{dayBills.length - 3} more</div>
           )}
         </div>
       </div>
@@ -171,22 +171,22 @@ export default function BillCalendar() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => setMonthOffset(o => o - 1)} className="p-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-400 hover:text-white transition-colors cursor-pointer">
+          <button onClick={() => setMonthOffset(o => o - 1)} className="p-2 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer">
             <ChevronLeft size={18} />
           </button>
-          <h2 className="text-xl font-bold text-white min-w-[200px] text-center">{monthName}</h2>
-          <button onClick={() => setMonthOffset(o => o + 1)} className="p-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-400 hover:text-white transition-colors cursor-pointer">
+          <h2 className="text-xl font-bold text-slate-900 min-w-[200px] text-center">{monthName}</h2>
+          <button onClick={() => setMonthOffset(o => o + 1)} className="p-2 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer">
             <ChevronRight size={18} />
           </button>
           {monthOffset !== 0 && (
-            <button onClick={() => setMonthOffset(0)} className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer">
+            <button onClick={() => setMonthOffset(0)} className="text-xs text-cyan-600 hover:text-cyan-700 transition-colors cursor-pointer">
               Today
             </button>
           )}
         </div>
         <div className="text-right">
-          <div className="text-sm text-slate-400">Monthly Bills</div>
-          <div className="text-lg font-bold text-amber-400">{fmt(monthTotal)}</div>
+          <div className="text-sm text-slate-500">Monthly Bills</div>
+          <div className="text-lg font-bold text-amber-600">{fmt(monthTotal)}</div>
         </div>
       </div>
 
@@ -194,15 +194,15 @@ export default function BillCalendar() {
         {Object.entries(PERSON_COLORS).map(([key, colors]) => (
           <div key={key} className="flex items-center gap-1.5">
             <span className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
-            <span className="text-slate-400 capitalize">{key === 'debt' ? 'Debt Payments' : key === 'custom' ? 'Custom Bills' : key}</span>
+            <span className="text-slate-500 capitalize">{key === 'debt' ? 'Debt Payments' : key === 'custom' ? 'Custom Bills' : key}</span>
           </div>
         ))}
       </div>
 
-      <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
         <div className="grid grid-cols-7 gap-1 mb-1">
           {DAYS.map(d => (
-            <div key={d} className="text-center text-xs text-slate-500 font-medium py-1">{d}</div>
+            <div key={d} className="text-center text-xs text-slate-400 font-medium py-1">{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
@@ -211,7 +211,7 @@ export default function BillCalendar() {
       </div>
 
       {selectedDay && (
-        <div className="bg-slate-800 rounded-xl border border-cyan-500/30 p-5 animate-fade-in">
+        <div className="bg-white rounded-xl shadow-sm border border-cyan-200 p-5 animate-fade-in">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">
               {viewDate.toLocaleDateString('en-US', { month: 'long' })} {selectedDay}
@@ -219,44 +219,44 @@ export default function BillCalendar() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="flex items-center gap-1.5 text-sm text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 text-sm text-cyan-600 hover:text-cyan-700 transition-colors cursor-pointer"
               >
                 {showAddForm ? <X size={16} /> : <Plus size={16} />}
                 {showAddForm ? 'Cancel' : 'Add Bill'}
               </button>
-              <button onClick={() => setSelectedDay(null)} className="text-slate-500 hover:text-slate-300 transition-colors cursor-pointer">
+              <button onClick={() => setSelectedDay(null)} className="text-slate-400 hover:text-slate-700 transition-colors cursor-pointer">
                 <X size={16} />
               </button>
             </div>
           </div>
 
           {showAddForm && (
-            <form onSubmit={handleAddBill} className="bg-slate-700/50 rounded-lg p-4 mb-4 space-y-3">
+            <form onSubmit={handleAddBill} className="bg-slate-50 rounded-lg p-4 mb-4 space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input
                   type="text"
                   placeholder="Bill name"
                   value={newBill.name}
                   onChange={e => setNewBill({ ...newBill, name: e.target.value })}
-                  className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none ring-1 ring-slate-600 focus:ring-cyan-500"
+                  className="bg-white text-slate-900 rounded-lg px-3 py-2 text-sm outline-none ring-1 ring-slate-300 focus:ring-cyan-500"
                 />
                 <input
                   type="number"
                   placeholder="Amount"
                   value={newBill.amount}
                   onChange={e => setNewBill({ ...newBill, amount: e.target.value })}
-                  className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none ring-1 ring-slate-600 focus:ring-cyan-500"
+                  className="bg-white text-slate-900 rounded-lg px-3 py-2 text-sm outline-none ring-1 ring-slate-300 focus:ring-cyan-500"
                 />
                 <select
                   value={newBill.person}
                   onChange={e => setNewBill({ ...newBill, person: e.target.value })}
-                  className="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none ring-1 ring-slate-600 focus:ring-cyan-500 cursor-pointer"
+                  className="bg-white text-slate-900 rounded-lg px-3 py-2 text-sm outline-none ring-1 ring-slate-300 focus:ring-cyan-500 cursor-pointer"
                 >
                   <option value="gavin">Gavin</option>
                   <option value="hazel">Hazel</option>
                 </select>
               </div>
-              <button type="submit" className="bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer">
+              <button type="submit" className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer">
                 Add to {viewDate.toLocaleDateString('en-US', { month: 'long' })} {selectedDay}
               </button>
             </form>
@@ -272,15 +272,15 @@ export default function BillCalendar() {
                       <DollarSign size={16} className={colors.text} />
                       <div>
                         <span className={`font-medium text-sm ${colors.text}`}>{bill.name}</span>
-                        <span className="text-xs text-slate-500 ml-2 capitalize">{bill.source === 'debt' ? 'Debt Payment' : bill.source}</span>
+                        <span className="text-xs text-slate-400 ml-2 capitalize">{bill.source === 'debt' ? 'Debt Payment' : bill.source}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-semibold text-white">{fmt(bill.amount)}</span>
+                      <span className="font-semibold text-slate-900">{fmt(bill.amount)}</span>
                       {bill.type === 'custom' && (
                         <button
                           onClick={() => dispatch({ type: 'REMOVE_CALENDAR_BILL', id: bill.id })}
-                          className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-all cursor-pointer"
+                          className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-all cursor-pointer"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -289,20 +289,20 @@ export default function BillCalendar() {
                   </div>
                 );
               })}
-              <div className="flex justify-between pt-2 border-t border-slate-700 text-sm">
-                <span className="text-slate-400">Day Total</span>
-                <span className="font-bold text-amber-400">
+              <div className="flex justify-between pt-2 border-t border-slate-200 text-sm">
+                <span className="text-slate-500">Day Total</span>
+                <span className="font-bold text-amber-600">
                   {fmt((billsByDay[selectedDay] || []).reduce((s, b) => s + (Number(b.amount) || 0), 0))}
                 </span>
               </div>
             </div>
           ) : (
-            <p className="text-slate-500 text-sm">No bills on this day. Click "Add Bill" to add one.</p>
+            <p className="text-slate-400 text-sm">No bills on this day. Click "Add Bill" to add one.</p>
           )}
         </div>
       )}
 
-      <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
         <h3 className="text-lg font-semibold mb-4">
           {isCurrentMonth ? 'Upcoming Bills' : 'All Bills This Month'}
         </h3>
@@ -312,21 +312,21 @@ export default function BillCalendar() {
               const colors = PERSON_COLORS[bill.source] || PERSON_COLORS.custom;
               const isToday2 = isCurrentMonth && bill.day === today;
               return (
-                <div key={i} className={`flex items-center justify-between p-3 rounded-lg ${isToday2 ? 'bg-cyan-500/10 border border-cyan-500/30' : 'bg-slate-700/30 hover:bg-slate-700/50'} transition-colors`}>
+                <div key={i} className={`flex items-center justify-between p-3 rounded-lg ${isToday2 ? 'bg-cyan-50 border border-cyan-200' : 'bg-slate-50 hover:bg-slate-100'} transition-colors`}>
                   <div className="flex items-center gap-3">
-                    <span className={`w-8 text-center text-sm font-medium ${isToday2 ? 'text-cyan-400' : 'text-slate-500'}`}>
+                    <span className={`w-8 text-center text-sm font-medium ${isToday2 ? 'text-cyan-600' : 'text-slate-400'}`}>
                       {bill.day}{ordinal(bill.day)}
                     </span>
                     <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
-                    <span className="text-sm text-slate-300">{bill.name}</span>
+                    <span className="text-sm text-slate-700">{bill.name}</span>
                   </div>
-                  <span className="font-medium text-amber-400 text-sm">{fmt(bill.amount)}</span>
+                  <span className="font-medium text-amber-600 text-sm">{fmt(bill.amount)}</span>
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="text-slate-500 text-sm">No upcoming bills this month.</p>
+          <p className="text-slate-400 text-sm">No upcoming bills this month.</p>
         )}
       </div>
     </div>

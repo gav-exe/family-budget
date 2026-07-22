@@ -19,7 +19,7 @@ const defaultState = {
       { name: 'Eating Out', amount: 200, dueOn: '' },
       { name: 'Internet', amount: 100, dueOn: '8th' },
       { name: 'Gas', amount: 85, dueOn: '' },
-      { name: 'Subscriptions', amount: 137, dueOn: '20th' },
+      { name: 'Subscriptions', amount: 137, dueOn: '' },
       { name: 'Car Insurance', amount: 81, dueOn: '19th' },
       { name: 'Phone', amount: 50, dueOn: '24th' },
       { name: 'Gavin Spend', amount: 150, dueOn: '' },

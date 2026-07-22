@@ -26,7 +26,7 @@ function AppContent() {
   // When Supabase is set up, require a login before showing the budget.
   if (cloudEnabled && authLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-500">
         Loading…
       </div>
     );
@@ -36,18 +36,18 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <header className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+    <div className="min-h-screen bg-slate-100">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold tracking-tight">
-              <span className="text-white">Cox Family</span>
-              <span className="text-cyan-400 ml-1.5">Budget</span>
+              <span className="text-slate-900">Cox Family</span>
+              <span className="text-cyan-600 ml-1.5">Budget</span>
             </h1>
             {cloudEnabled && session && (
               <button
                 onClick={signOut}
-                className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
               >
                 <LogOut size={16} /> Sign out
               </button>
@@ -63,8 +63,8 @@ function AppContent() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all cursor-pointer ${
                     active
-                      ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
-                      : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50 border border-transparent'
+                      ? 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 border border-transparent'
                   }`}
                 >
                   <Icon size={16} />
@@ -86,8 +86,8 @@ function AppContent() {
         {activeTab === 'goals' && <GoalsTracker />}
       </main>
 
-      <footer className="text-center text-xs text-slate-600 py-4 border-t border-slate-800">
-        Data saved locally in your browser. Click any value to edit.
+      <footer className="text-center text-xs text-slate-400 py-4 border-t border-slate-200">
+        Saved to your shared cloud budget. Click any value to edit.
       </footer>
     </div>
   );
