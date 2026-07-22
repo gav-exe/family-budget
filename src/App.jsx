@@ -4,10 +4,10 @@ import Dashboard from './components/Dashboard';
 import PersonBudget from './components/PersonBudget';
 import DebtTracker from './components/DebtTracker';
 import Subscriptions from './components/Subscriptions';
-import CancunTracker from './components/CancunTracker';
+import GoalsTracker from './components/GoalsTracker';
 import BillCalendar from './components/BillCalendar';
 import Login from './components/Login';
-import { LayoutDashboard, User, Users, CreditCard, Tv, Plane, CalendarDays, RotateCcw, LogOut } from 'lucide-react';
+import { LayoutDashboard, User, Users, CreditCard, Tv, Target, CalendarDays, RotateCcw, LogOut } from 'lucide-react';
 
 const tabs = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -16,7 +16,7 @@ const tabs = [
   { id: 'calendar', label: 'Bill Calendar', icon: CalendarDays },
   { id: 'debts', label: 'Debt Tracker', icon: CreditCard },
   { id: 'subscriptions', label: 'Subscriptions', icon: Tv },
-  { id: 'cancun', label: 'Cancun', icon: Plane },
+  { id: 'goals', label: 'Goals', icon: Target },
 ];
 
 function AppContent() {
@@ -83,7 +83,7 @@ function AppContent() {
         {activeTab === 'calendar' && <BillCalendar />}
         {activeTab === 'debts' && <DebtTracker />}
         {activeTab === 'subscriptions' && <Subscriptions />}
-        {activeTab === 'cancun' && <CancunTracker />}
+        {activeTab === 'goals' && <GoalsTracker />}
       </main>
 
       <footer className="text-center text-xs text-slate-600 py-4 border-t border-slate-800">

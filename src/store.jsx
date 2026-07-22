@@ -68,18 +68,21 @@ const defaultState = {
     { id: 12, name: 'KDTIVI', cost: 3, status: 'Active', notes: 'Personal' },
   ],
   calendarBills: [],
-  cancun: {
-    debts: [
-      { id: 1, name: 'Flights', originalBalance: 1897.46, currentBalance: 0, minPayment: 495.59 },
-      { id: 2, name: 'Resort', originalBalance: 5500, currentBalance: 870, minPayment: 1300 },
-    ],
-  },
+  goals: [],
 };
+
+// Older saves kept a `cancun` section instead of `goals`; drop it and make
+// sure `goals` always exists.
+function migrate(s) {
+  if (!s || typeof s !== 'object') return s;
+  const { cancun, ...rest } = s;
+  return { goals: [], ...rest };
+}
 
 function loadState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    if (saved) return migrate(JSON.parse(saved));
   } catch {}
   return defaultState;
 }
@@ -88,7 +91,7 @@ function reducer(state, action) {
   switch (action.type) {
     case 'SET_ALL':
       // Replace the whole state (used when loading from the cloud).
-      return action.state;
+      return migrate(action.state);
     case 'UPDATE_PAYCHECK': {
       const { person, index, amount } = action;
       const p = { ...state[person] };
@@ -166,15 +169,23 @@ function reducer(state, action) {
     case 'REMOVE_CALENDAR_BILL': {
       return { ...state, calendarBills: (state.calendarBills || []).filter(b => b.id !== action.id) };
     }
-    case 'UPDATE_CANCUN_DEBT': {
+    case 'UPDATE_GOAL': {
       const { id, field, value } = action;
       return {
         ...state,
-        cancun: {
-          ...state.cancun,
-          debts: state.cancun.debts.map(d => d.id === id ? { ...d, [field]: value } : d),
-        },
+        goals: (state.goals || []).map(g => g.id === id ? { ...g, [field]: value } : g),
       };
+    }
+    case 'ADD_GOAL': {
+      const goals = state.goals || [];
+      const maxId = Math.max(0, ...goals.map(g => g.id));
+      return {
+        ...state,
+        goals: [...goals, { id: maxId + 1, name: 'New Goal', originalBalance: 0, currentBalance: 0, minPayment: 0 }],
+      };
+    }
+    case 'REMOVE_GOAL': {
+      return { ...state, goals: (state.goals || []).filter(g => g.id !== action.id) };
     }
     case 'RESET':
       localStorage.removeItem(STORAGE_KEY);
