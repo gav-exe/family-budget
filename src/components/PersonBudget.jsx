@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useBudget, getPersonTotals } from '../store';
 import EditableCell from './EditableCell';
 import StatCard from './StatCard';
-import { DollarSign, Wallet, Zap, Plus, Trash2 } from 'lucide-react';
+import { DollarSign, Wallet, Zap, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const fmt = v => '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -9,6 +10,7 @@ export default function PersonBudget({ personKey }) {
   const { state, dispatch } = useBudget();
   const person = state[personKey];
   const totals = getPersonTotals(person);
+  const [showPerPaycheck, setShowPerPaycheck] = useState(true);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -133,6 +135,49 @@ export default function PersonBudget({ personKey }) {
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div className="bg-white rounded-[22px] border-[3px] border-ink hard-shadow overflow-hidden">
+        <button
+          onClick={() => setShowPerPaycheck(o => !o)}
+          className={`w-full px-5 py-4 bg-cream flex justify-between items-center cursor-pointer text-left ${showPerPaycheck ? 'border-b-[3px] border-ink' : ''}`}
+        >
+          <div>
+            <h3 className="text-xl font-display font-extrabold text-ink">Per Paycheck (Biweekly)</h3>
+            <p className="text-xs text-ink/50">What SoFi pulls into vaults from each paycheck (half of the monthly amounts)</p>
+          </div>
+          {showPerPaycheck ? <ChevronUp size={18} className="text-ink shrink-0" /> : <ChevronDown size={18} className="text-ink shrink-0" />}
+        </button>
+        {showPerPaycheck && (
+          <table className="w-full">
+            <thead>
+              <tr className="text-ink/50 text-sm">
+                <th className="text-left px-5 py-3 font-medium">Expense</th>
+                <th className="text-right px-5 py-3 font-medium">Per Paycheck</th>
+              </tr>
+            </thead>
+            <tbody>
+              {person.expenses.map((exp, i) => (
+                <tr key={i} className="border-t-2 border-ink/10 hover:bg-cream">
+                  <td className="px-5 py-3 text-ink/80">{exp.name}</td>
+                  <td className="px-5 py-3 text-right text-ink font-medium">{fmt(exp.amount / 2)}</td>
+                </tr>
+              ))}
+              {(person.minimumCardPayments > 0 || personKey === 'gavin') && (
+                <tr className="border-t-2 border-ink/10 hover:bg-cream">
+                  <td className="px-5 py-3 text-ink/80">Minimum Card Payments</td>
+                  <td className="px-5 py-3 text-right text-ink font-medium">{fmt(person.minimumCardPayments / 2)}</td>
+                </tr>
+              )}
+              <tr className="border-t-[3px] border-ink bg-cream font-bold">
+                <td className="px-5 py-3 text-ink">Per Paycheck Total</td>
+                <td className="px-5 py-3 text-right">
+                  <span className="bg-mustard text-ink px-2 py-0.5 rounded-md border-2 border-ink">{fmt(totals.totalExpenses / 2)}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        )}
       </div>
 
       <div className={`rounded-[22px] p-5 border-[3px] border-ink hard-shadow-lg ${totals.available >= 0 ? 'bg-teal' : 'bg-coral'}`}>

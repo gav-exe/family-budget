@@ -6,6 +6,7 @@ import { Plus, Trash2, RotateCcw, PiggyBank } from 'lucide-react';
 const fmt = v => '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtRound = v => (v < 0 ? '-$' : '$') + Math.abs(Math.round(Number(v))).toLocaleString('en-US');
 const SEG_COLORS = ['bg-teal', 'bg-coral', 'bg-mustard', 'bg-violet', 'bg-sky'];
+const ENVELOPE_MODE_KEY = 'cox-family-budget-envelope-mode';
 
 const spentOf = e => (e.log || []).reduce((s, l) => s + (Number(l.amount) || 0), 0);
 
@@ -52,7 +53,7 @@ function RingGauge({ remaining, budget }) {
   );
 }
 
-function EnvelopeCard({ env, dispatch }) {
+function EnvelopeCard({ env, dispatch, perPaycheck }) {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [person, setPerson] = useState('gavin');
@@ -94,14 +95,28 @@ function EnvelopeCard({ env, dispatch }) {
           <div className="text-[10px] text-ink/40">{fmt(spent)} spent</div>
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-xs text-ink/40">Monthly budget</span>
-          <div className="font-display font-bold text-ink text-lg">
-            <EditableCell
-              value={env.budget}
-              prefix="$"
-              onChange={v => dispatch({ type: 'UPDATE_ENVELOPE', id: env.id, field: 'budget', value: v })}
-            />
-          </div>
+          <span className="text-xs text-ink/40">{perPaycheck ? 'Allowance / paycheck' : 'Monthly budget'}</span>
+          {perPaycheck ? (
+            <>
+              <div className="font-display font-bold text-ink text-lg">{fmt(budget / 2)}</div>
+              <div className="text-xs text-ink/40">
+                <EditableCell
+                  value={env.budget}
+                  prefix="$"
+                  onChange={v => dispatch({ type: 'UPDATE_ENVELOPE', id: env.id, field: 'budget', value: v })}
+                  className="text-ink/40 text-xs"
+                />/mo
+              </div>
+            </>
+          ) : (
+            <div className="font-display font-bold text-ink text-lg">
+              <EditableCell
+                value={env.budget}
+                prefix="$"
+                onChange={v => dispatch({ type: 'UPDATE_ENVELOPE', id: env.id, field: 'budget', value: v })}
+              />
+            </div>
+          )}
           {remaining < 0 && (
             <span className="inline-block mt-1 text-xs bg-coral text-white px-2 py-0.5 rounded-full font-bold border-2 border-ink hard-shadow-sm">
               OVER BY {fmtRound(Math.abs(remaining))}
@@ -158,6 +173,17 @@ export default function Envelopes() {
   const { state, dispatch } = useBudget();
   const envelopes = state.envelopes || [];
 
+  // 'Monthly' (default) vs 'Per Paycheck' reframes allowance figures only;
+  // spent/remaining always show real monthly-truth numbers. Persisted so the
+  // choice survives reloads; fails soft if storage is unavailable.
+  const [perPaycheck, setPerPaycheck] = useState(() => {
+    try { return localStorage.getItem(ENVELOPE_MODE_KEY) === 'paycheck'; } catch { return false; }
+  });
+  function setMode(pp) {
+    setPerPaycheck(pp);
+    try { localStorage.setItem(ENVELOPE_MODE_KEY, pp ? 'paycheck' : 'monthly'); } catch {}
+  }
+
   const totalAllowance = envelopes.reduce((s, e) => s + (Number(e.budget) || 0), 0);
   const totalSpent = envelopes.reduce((s, e) => s + spentOf(e), 0);
   const totalRemaining = totalAllowance - totalSpent;
@@ -186,18 +212,34 @@ export default function Envelopes() {
               <p className="text-sm text-ink/60">Cash-style budgeting. Log it when you spend it.</p>
             </div>
           </div>
-          <button
-            onClick={handleNewMonth}
-            className="flex items-center gap-1.5 text-sm font-bold text-ink bg-mustard border-[3px] border-ink rounded-full px-4 py-2 hard-shadow-sm press cursor-pointer"
-          >
-            <RotateCcw size={16} /> Start New Month
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex gap-1 rounded-full border-2 border-ink bg-white p-1">
+              <button
+                onClick={() => setMode(false)}
+                className={`px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors ${!perPaycheck ? 'bg-teal text-white border-2 border-ink hard-shadow-sm' : 'text-ink/50 hover:text-ink border-2 border-transparent'}`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setMode(true)}
+                className={`px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-colors ${perPaycheck ? 'bg-teal text-white border-2 border-ink hard-shadow-sm' : 'text-ink/50 hover:text-ink border-2 border-transparent'}`}
+              >
+                Per Paycheck
+              </button>
+            </div>
+            <button
+              onClick={handleNewMonth}
+              className="flex items-center gap-1.5 text-sm font-bold text-ink bg-mustard border-[3px] border-ink rounded-full px-4 py-2 hard-shadow-sm press cursor-pointer"
+            >
+              <RotateCcw size={16} /> Start New Month
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
-            <span className="text-xs text-ink/40">Total Allowance</span>
-            <div className="text-lg font-display font-extrabold text-ink">{fmt(totalAllowance)}</div>
+            <span className="text-xs text-ink/40">{perPaycheck ? 'Allowance / Paycheck' : 'Total Allowance'}</span>
+            <div className="text-lg font-display font-extrabold text-ink">{fmt(perPaycheck ? totalAllowance / 2 : totalAllowance)}</div>
           </div>
           <div>
             <span className="text-xs text-ink/40">Total Spent</span>
@@ -245,7 +287,7 @@ export default function Envelopes() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {envelopes.map(env => (
-          <EnvelopeCard key={env.id} env={env} dispatch={dispatch} />
+          <EnvelopeCard key={env.id} env={env} dispatch={dispatch} perPaycheck={perPaycheck} />
         ))}
       </div>
       {envelopes.length === 0 && (
