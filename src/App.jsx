@@ -3,16 +3,18 @@ import { BudgetProvider, useBudget } from './store';
 import Dashboard from './components/Dashboard';
 import PersonBudget from './components/PersonBudget';
 import DebtTracker from './components/DebtTracker';
+import Envelopes from './components/Envelopes';
 import Subscriptions from './components/Subscriptions';
 import GoalsTracker from './components/GoalsTracker';
 import BillCalendar from './components/BillCalendar';
 import Login from './components/Login';
-import { LayoutDashboard, User, Users, CreditCard, Tv, Target, CalendarDays, RotateCcw, LogOut } from 'lucide-react';
+import { LayoutDashboard, User, Users, CreditCard, Tv, Target, CalendarDays, RotateCcw, LogOut, Wallet } from 'lucide-react';
 
 const tabs = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
   { id: 'gavin', label: 'Gavin', icon: User },
   { id: 'hazel', label: 'Hazel', icon: Users },
+  { id: 'envelopes', label: 'Envelopes', icon: Wallet },
   { id: 'calendar', label: 'Bill Calendar', icon: CalendarDays },
   { id: 'debts', label: 'Debt Tracker', icon: CreditCard },
   { id: 'subscriptions', label: 'Subscriptions', icon: Tv },
@@ -131,6 +133,7 @@ function AppContent() {
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'gavin' && <PersonBudget personKey="gavin" />}
         {activeTab === 'hazel' && <PersonBudget personKey="hazel" />}
+        {activeTab === 'envelopes' && <Envelopes />}
         {activeTab === 'calendar' && <BillCalendar />}
         {activeTab === 'debts' && <DebtTracker />}
         {activeTab === 'subscriptions' && <Subscriptions />}

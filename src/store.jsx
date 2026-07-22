@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, useState } from 'react';
+import { createContext, useContext, useReducer, useEffect, useState, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 const STORAGE_KEY = 'cox-family-budget';
@@ -69,14 +69,35 @@ const defaultState = {
   ],
   calendarBills: [],
   goals: [],
+  envelopes: [
+    { id: 1, name: 'Groceries', budget: 400, log: [] },
+    { id: 2, name: 'Eating Out', budget: 200, log: [] },
+    { id: 3, name: 'Kids', budget: 200, log: [] },
+    { id: 4, name: 'Gavin Fun Money', budget: 150, log: [] },
+    { id: 5, name: 'Hazel Fun Money', budget: 150, log: [] },
+  ],
 };
 
 // Older saves kept a `cancun` section instead of `goals`; drop it and make
-// sure `goals` always exists.
+// sure `goals` always exists. Saves from before envelopes existed get the
+// starter set seeded in.
 function migrate(s) {
   if (!s || typeof s !== 'object') return s;
   const { cancun, ...rest } = s;
-  return { goals: [], ...rest };
+  const migrated = { goals: [], ...rest };
+  if (!Array.isArray(migrated.envelopes)) {
+    migrated.envelopes = defaultState.envelopes.map(e => ({ ...e, log: [] }));
+  }
+  return migrated;
+}
+
+// Key-order-independent JSON stringify. Postgres jsonb reorders keys and
+// migrate() can too, so a plain JSON.stringify comparison would call equal
+// data "different" and defeat the realtime echo guard.
+function stateJson(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(stateJson).join(',') + ']';
+  return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + stateJson(v[k])).join(',') + '}';
 }
 
 function loadState() {
@@ -187,6 +208,50 @@ function reducer(state, action) {
     case 'REMOVE_GOAL': {
       return { ...state, goals: (state.goals || []).filter(g => g.id !== action.id) };
     }
+    case 'ADD_ENVELOPE': {
+      const envelopes = state.envelopes || [];
+      const maxId = Math.max(0, ...envelopes.map(e => e.id));
+      return {
+        ...state,
+        envelopes: [...envelopes, { id: maxId + 1, name: 'New Envelope', budget: 0, log: [] }],
+      };
+    }
+    case 'REMOVE_ENVELOPE': {
+      return { ...state, envelopes: (state.envelopes || []).filter(e => e.id !== action.id) };
+    }
+    case 'UPDATE_ENVELOPE': {
+      const { id, field, value } = action;
+      return {
+        ...state,
+        envelopes: (state.envelopes || []).map(e => e.id === id ? { ...e, [field]: value } : e),
+      };
+    }
+    case 'LOG_SPEND': {
+      const { envelopeId, amount, note, person } = action;
+      return {
+        ...state,
+        envelopes: (state.envelopes || []).map(e => {
+          if (e.id !== envelopeId) return e;
+          const maxLogId = Math.max(0, ...(e.log || []).map(l => l.id));
+          return {
+            ...e,
+            log: [...(e.log || []), { id: maxLogId + 1, amount, note, ts: new Date().toISOString(), person }],
+          };
+        }),
+      };
+    }
+    case 'REMOVE_SPEND': {
+      const { envelopeId, logId } = action;
+      return {
+        ...state,
+        envelopes: (state.envelopes || []).map(e =>
+          e.id === envelopeId ? { ...e, log: (e.log || []).filter(l => l.id !== logId) } : e
+        ),
+      };
+    }
+    case 'RESET_ENVELOPES': {
+      return { ...state, envelopes: (state.envelopes || []).map(e => ({ ...e, log: [] })) };
+    }
     case 'RESET':
       localStorage.removeItem(STORAGE_KEY);
       return defaultState;
@@ -205,6 +270,9 @@ export function BudgetProvider({ children }) {
   // True once we've loaded (or seeded) the cloud row, so we don't push local
   // state up before we've pulled the authoritative copy down.
   const [cloudReady, setCloudReady] = useState(false);
+  // Last-known state JSON, from either our own successful save or a remote
+  // payload we applied. Drives the realtime echo guard.
+  const lastKnownRef = useRef(null);
 
   // Track the Supabase auth session.
   useEffect(() => {
@@ -235,9 +303,10 @@ export function BudgetProvider({ children }) {
         dispatch({ type: 'SET_ALL', state: data.data });
       } else {
         // No saved budget yet: seed the row with whatever we have locally.
-        await supabase
+        const { error: seedError } = await supabase
           .from('budgets')
           .upsert({ user_id: session.user.id, data: state, updated_at: new Date().toISOString() });
+        if (!seedError) lastKnownRef.current = stateJson(state);
       }
       setCloudReady(true);
     })();
@@ -253,14 +322,58 @@ export function BudgetProvider({ children }) {
   // Debounced save to the cloud whenever the budget changes.
   useEffect(() => {
     if (!isSupabaseConfigured || !session || !cloudReady) return;
+    // Echo guard: skip states that just arrived from realtime (already saved
+    // by the other device), so two open tabs never ping-pong writes.
+    const json = stateJson(state);
+    if (json === lastKnownRef.current) return;
     const t = setTimeout(() => {
       supabase
         .from('budgets')
         .upsert({ user_id: session.user.id, data: state, updated_at: new Date().toISOString() })
-        .then(({ error }) => { if (error) console.error('Cloud save failed:', error.message); });
+        .then(({ error }) => {
+          if (error) console.error('Cloud save failed:', error.message);
+          else lastKnownRef.current = json;
+        });
     }, 800);
     return () => clearTimeout(t);
   }, [state, session, cloudReady]);
+
+  // Live sync: when the other spouse saves, apply their row here instantly.
+  // Fails soft: if realtime is unavailable the debounced save above keeps
+  // working exactly as before.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !session || !cloudReady) return;
+    let channel;
+    try {
+      channel = supabase
+        .channel(`budgets-live-${session.user.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${session.user.id}` },
+          payload => {
+            try {
+              const data = payload.new?.data;
+              if (!data || typeof data !== 'object') return;
+              const json = stateJson(data);
+              // Echo guard: ignore our own writes and anything we already have.
+              if (json === lastKnownRef.current) return;
+              lastKnownRef.current = json;
+              dispatch({ type: 'SET_ALL', state: data });
+            } catch (err) {
+              console.error('Realtime apply failed:', err);
+            }
+          }
+        )
+        .subscribe((status, err) => {
+          if (err) console.error('Realtime subscription error:', err);
+        });
+    } catch (err) {
+      console.error('Realtime setup failed:', err);
+    }
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [session, cloudReady]);
 
   const signOut = () => supabase?.auth.signOut();
 

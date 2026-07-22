@@ -28,3 +28,7 @@ create policy "update own budget"
   on public.budgets for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- Enable Supabase Realtime broadcasts for the budgets table so the app can
+-- live-sync between devices. Run this once manually in the SQL Editor.
+alter publication supabase_realtime add table public.budgets;
